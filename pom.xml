@@ -1,0 +1,187 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.travelsky.airline.trp.ops</groupId>
+    <artifactId>telassa-probe</artifactId>
+    <version>0.0.1</version>
+    <packaging>jar</packaging>
+    <name>TelassaProbe</name>
+    <description>
+        TRP 全局调用链，探针。
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.19.0-GA</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging-log4j</artifactId>
+            <version>2.1.2.GA</version>
+        </dependency>
+
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+
+        <!-- 支持 CMS 需要这两个 dependency -->
+        <!--<dependency>-->
+            <!--<groupId>org.apache.logging.log4j</groupId>-->
+            <!--<artifactId>log4j-1.2-api</artifactId>-->
+            <!--<version>2.11.2</version>-->
+        <!--</dependency>-->
+
+        <!--<dependency>-->
+            <!--<groupId>com.lmax</groupId>-->
+            <!--<artifactId>disruptor</artifactId>-->
+            <!--<version>3.4.2</version>-->
+        <!--</dependency>-->
+
+
+
+        <dependency>
+            <groupId>com.dianping.cat</groupId>
+            <artifactId>cat-client</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+        <!-- Hotspot JVM metrics-->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hotspot</artifactId>
+            <version>0.6.0</version>
+        </dependency>
+        <!-- Exposition HTTPServer-->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_httpserver</artifactId>
+            <version>0.6.0</version>
+        </dependency>
+        <!--jmx 内存堆栈-->
+        <dependency>
+            <groupId>io.prometheus.jmx</groupId>
+            <artifactId>collector</artifactId>
+            <version>0.11.0</version>
+        </dependency>
+
+        <!--tinypinyin，中文转拼音-->
+        <dependency>
+            <groupId>com.github.promeg</groupId>
+            <artifactId>tinypinyin</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.promeg</groupId>
+            <artifactId>tinypinyin-lexicons-java-cncity</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+
+        <!-- 只是取 com.travelsky.ibe.exceptions. 中的 Exception，不具体使用逻辑，打包时也不需要 -->
+        <!--<dependency>-->
+            <!--<groupId>com.travelsky</groupId>-->
+            <!--<artifactId>ebuild</artifactId>-->
+            <!--<version>3.0.0</version>-->
+            <!--<scope>compile</scope>-->
+        <!--</dependency>-->
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <!--
+                                Instrumentation Specification
+                                    - https://docs.oracle.com/javase/8/docs/technotes/guides/instrumentation/index.html
+                                    - https://docs.oracle.com/javase/8/docs/api/java/lang/instrument/package-summary.html#package.description
+                                JAR Manifest - JAR File Specification
+                                    - https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html#JAR_Manifest
+                            -->
+                            <Premain-Class>com.travelsky.airline.trp.ops.telassa.probe.TelassaProbe</Premain-Class>
+                            <Boot-Class-Path>${project.artifactId}-${project.version}.jar</Boot-Class-Path>
+                            <Can-Redefine-Classes>false</Can-Redefine-Classes>
+                            <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                            <Can-Set-Native-Method-Prefix>false</Can-Set-Native-Method-Prefix>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createSourcesJar>true</createSourcesJar>
+                            <relocations>
+                                <relocation>
+                                    <pattern>javassist</pattern>
+                                    <shadedPattern>com.travelsky.airline.trp.ops.telassa.probe.shaded.javassist
+                                    </shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.prometheus</pattern>
+                                    <shadedPattern>com.travelsky.airline.trp.ops.telassa.probe.shaded.io.prometheus
+                                    </shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.github.promeg</pattern>
+                                    <shadedPattern>
+                                        com.travelsky.airline.trp.ops.telassa.probe.shaded.promeg.tinypinyin
+                                    </shadedPattern>
+                                </relocation>
+                                <!--<relocation>-->
+                                <!--<pattern>org.apache.log4j</pattern>-->
+                                <!--<shadedPattern>com.travelsky.airline.trp.ops.telassa.probe.shaded.log4j</shadedPattern>-->
+                                <!--</relocation>-->
+                            </relocations>
+
+                            <artifactSet>
+                                <excludes>
+                                    <!--<exclude>com.dianping.cat:cat-client</exclude>-->
+                                    <!--<exclude>com.google.code.gson:gson</exclude>-->
+
+                                    <!--CMS 自带 netty，所以这个要放开-->
+                                    <!--<exclude>io.netty:netty-all</exclude>-->
+                                    <!--<exclude>org.unidal.framework:foundation-service</exclude>-->
+                                    <!--<exclude>org.codehaus.plexus:*</exclude>-->
+                                    <!--<exclude>io.prometheus:*</exclude>-->
+                                    <!--<exclude>log4j:log4j:jar:*</exclude>-->
+                                </excludes>
+                            </artifactSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
